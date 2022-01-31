@@ -1,0 +1,64 @@
+# Group 253 - Assignment 2 - Design Document
+
+Opening this file in markdown will be pleasant to the eye.
+
+## Members
+
+Dan Nguyen (z5206032)
+Chengqian Hu (z5207587)
+
+## Marker Questions
+
+### What data structures have you added and what function do they perform?
+
+Three structs were implemented encapsulating an open file entry, an open file
+table, and a file descriptor table.
+
+An open file entry holds the vnode (vn), file lock (of_lock), file access mode (flags),
+open file offset (of_offset), and a reference counter 
+indicating how much file descriptor pointing to this file (fd_count).
+
+The open file table is an array of pointers to open file entries.
+
+The file descriptor table is an array of pointers pointing to open file entries that exist
+in the open file table. The file descriptor is the index of the file descriptor table.
+
+
+### What are any significant issues surround managing the data structures and state do they contain?
+
+Issue: Open file table should be able to access by syscall across all process.
+Solution: Declare the open file table structure in file.h 
+and declare a global structure for the open file table and intialise it in system boot.
+
+Issue: File descriptor table should only be accessed by syscalls within its own process,
+and each process should have its own File descriptor table.
+Solution: Declare the File descriptor table structure in file.h,
+add it into proc structure in proc.h, intialise the table in proc_create().
+
+Issue: A change to the file descriptor table data structure will require many changes to 
+syscall functions and file descriptor table functions.
+
+
+### What data structures are per-process and what structures are shared between processes?
+
+The open file table is global across all processes.
+stdin, stdout, stderr are attached to console and put into open file table 
+with index 0, 1, 2 respectively during open file table initialisation at system boot.
+The file descriptor table is intialised per process, and attach file descriptor 0, 1, 2
+to open file table [0](stdin), [1](stdout), [2](stderr) respectively in runprogram().
+
+
+### Are there any issues related to transferring data to and from applications?
+
+sys_leek() requires transfer whence from user address to kernel address.
+Solution: use copyin() function.
+
+
+### If fork() was implemented, what concurrency issues would be introduced to your implementation?
+
+Issue: Issues may be occured when incrementing or decrementing reference counter and offset in open file entry.
+Solution: Accquire a lock whenever incrementing or decrementing occurs.
+
+Issue: As the open file entry struct contains the offset for the open file then multiple processes
+can only access the open file at the same offset. This can be fixed by creating a file descriptor
+entry struct which contains the pointer to the open file and the offset.
